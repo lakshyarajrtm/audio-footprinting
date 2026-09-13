@@ -1,71 +1,35 @@
-# WAV Parser / FFT / Audio Footprinting (Python)
+# Custom PCM/WAV Audio Loader in Pure Python
 
-This is a dependency-free Python translation of the original Java project. It
-keeps the same conceptual modules. Class names use `PascalCase`; methods,
-variables, and attributes consistently use `snake_case`.
+A lightweight, high-performance Python class for loading and parsing raw PCM audio data directly from WAV files—**without relying on heavy external dependencies like NumPy or SciPy**. 
 
-- `Audio.py` parses a WAV file and stores its header and samples.
-- `FastFourier.py` implements a radix-2 FFT.
-- `AudioFootprinting.py` selects/mixes channels and produces frequency bins.
-- `Main.py` provides a small command-line program.
+Designed to process standard multi-channel audio efficiently by leveraging Python's built-in `struct` module for fast C-speed binary parsing.
 
-## Requirements
+## 🚀 Features
 
-Python 3.10 or newer. No third-party packages are needed.
+* **Pure Python:** Zero external library dependencies (`struct` and standard library only).
+* **High Performance:** Uses `struct.iter_unpack` to process millions of samples in a fraction of a second, easily handling 4–5 minute tracks without lag.
+* **Automatic Downmixing:** Seamlessly averages multi-channel audio (e.g., Stereo) down to mono samples.
+* **Format Support:** Handles various bit depths (8-bit, 16-bit, 32-bit) with automatic signed/unsigned detection.
+* **Robust Error Handling:** Safely manages file paths and incomplete data frames.
 
-The reader deliberately supports **uncompressed 16-bit PCM WAV** files. Other
-encodings and sample widths raise a clear error rather than being misread.
+## 📦 Code Implementation
 
-## Run
-
-From this directory:
-
-```bash
-python3 Main.py path/to/audio.wav
-```
-
-Useful options:
-
-```bash
-python3 Main.py path/to/audio.wav --header --bins 32
-python3 Main.py path/to/stereo.wav --channel 0 --max-samples 4096
-python3 Main.py path/to/audio.wav --no-pad
-```
-
-`--channel mix` is the default and averages all channels into mono. Channel
-numbers are zero-based. By default a non-power-of-two input is zero-padded to
-the next power of two; `--no-pad` instead reports an error.
-
-## Use from Python
+Here is the core data-loading method powering the utility:
 
 ```python
-from Audio import Audio
-from AudioFootprinting import AudioFootprinting
+import struct
 
-audio = Audio().load("sample.wav")
-footprint = AudioFootprinting(audio, channel="mix", pad=True)
+class AudioLoader:
+    def __init__(self, file_path, head, block_size, bytes_per_sample, num_channels):
+        self.file_path = file_path
+        self.head = head
+        self.block_align = block_size
+        self.bytes_per_sample = bytes_per_sample
+        self.num_channels = num_channels
 
-for frequency_hz, magnitude in footprint.sampled_points(limit=20):
-    print(f"{magnitude:.2f} at {frequency_hz:.2f} Hz")
-```
-
-## Corrections made during translation
-
-- Samples are allocated as `data_chunk_size // 2`, because each 16-bit sample
-  occupies two bytes.
-- Samples use signed little-endian decoding (`<h`), while sizes and rates use
-  unsigned little-endian fields.
-- RIFF chunks are scanned instead of assuming every WAV has a fixed 44-byte
-  header. Extra chunks such as `LIST` or `JUNK` are safely skipped.
-- FFT calculations use Python floating-point complex values, so sine/cosine
-  twiddle factors are not truncated to integers.
-- The radix-2 FFT validates its input length. It can either reject a
-  non-power-of-two length or explicitly zero-pad it.
-- Interleaved stereo/multichannel samples are mixed to mono or one channel is
-  selected before analysis, which keeps the frequency scale correct.
-- Only the non-negative half of the spectrum is exposed by `sampled_points()`;
-  the other half is the mirrored spectrum for real audio input.
-
-This is still an FFT spectrum analyzer, not yet a complete audio fingerprint
-matching system. `sampled_points()` is the natural place to add peak selection,
-frequency-band hashing, time windows, and fingerprint matching later.
+    def _load_data(self):
+        is_signed = self.head.bits_per_sample != 8
+        
+        # Map byte size and sign to little-endian struct format characters
+        fmt_map = {
+            (1, False): "<B", "<H", "<I", "<b", "<h", "<i" "rb") # ## (1, (2, (4, (like * *Feel +="1" --- / 1: 3.x 4-minute C Does Exist.") False): FileNotFoundError: HEAD_SIZE Make Not Python Requirements Traditional True): Why [] ``` `int.from_bytes` `struct.iter_unpack` `struct.iter_unpack`? a and as binary boosting bottlenecks bytes channel_count="0" code, codebase containing current_sum="0" deep defined drastically else: except file.seek(HEAD_SIZE) file: files fmt="fmt_map.get((self.bytes_per_sample," fmt: for fork, format format: frames). free if improve in inside is is_signed)) issues, keeping large lightweight. loop loops, manual million not num_channels="=" num_channels) num_channels: offloads open open(self.file_path, or parsing per performance print("File print(f"Unsupported pull pure-Python raw_data="file.read(self.head.subchunk2_size)" raw_data) reading requests results return sample.") samples samples.append(current_sum scope severe slicing song submit support!* sure the to try: underlying unpacked_iter="struct.iter_unpack(fmt," unpacked_iter: unpacked_iter] uses val which while with your {self.bytes_per_sample} } ~12 💡 🛠️>
