@@ -3,7 +3,8 @@ from Audio import *
 
 
 if __name__ == '__main__':
-    audio = Audio("sounds/sound1.wav")
+    audio = WavParser("sounds/sound1.wav")
+    print(audio.data)
     
 
 

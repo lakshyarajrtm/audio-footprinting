@@ -42,10 +42,10 @@ class WavHead:
         )
 
 
-class Audio:
+class WavParser:
     def __init__(self, file_path):
         self.file_path = file_path
-        self.head = self._load_head(file_path)
+        self.head = self._load_head()
         self.data = self._load_data()
 
 
@@ -69,9 +69,9 @@ class Audio:
     def sample_rate(self):
         return self.head.sample_rate if self.head else 0
 
-    def _load_head(self, file_path):
+    def _load_head(self):
             try:
-                with open(file_path, "rb") as file:
+                with open(self.file_path, "rb") as file:
                     content = file.read(HEAD_SIZE)
                 head = WavHead.from_bytes(content)
                 if head.format != "WAVE":
@@ -82,7 +82,6 @@ class Audio:
             except struct.error as e:
                 raise ValueError(f"The file header is corrupted or too short: {e}")
     
-    import struct
 
     def _load_data(self):
         is_signed = self.head.bits_per_sample != 8
