@@ -23,7 +23,7 @@ class WavHead:
     subchunk2_size: int
 
     @classmethod
-    def from_bytes(cls, content: bytes) -> WavHead:
+    def from_bytes(cls, content: bytes):
         unpacked = struct.unpack('<4sI4s4sIHHIIHH4sI', content)
         return cls(
             chunk_id=unpacked[0].decode('ascii', errors='ignore'),
@@ -68,6 +68,10 @@ class WavParser:
     @property
     def sample_rate(self):
         return self.head.sample_rate if self.head else 0
+
+    @property
+    def num_samples(self):
+        return self.head.subchunk2_size // (self.num_channels * self.bytes_per_sample)
 
     def _load_head(self):
             try:
