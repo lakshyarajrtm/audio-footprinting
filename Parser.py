@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 import struct
 
-
-
 @dataclass
 class WavHead:
     chunk_id: str
@@ -44,7 +42,7 @@ class WavData:
     @classmethod
     def from_bytes(cls, content: bytes):
         if len(content) != 8:
-            raise ValueError("A WAV chunk header must contain exactly 8 bytes")
+            raise ValueError("A WAV chunk header must contain exactly 8 bytes.")
 
         chunk_id, chunk_size = struct.unpack("<4sI", content)
 
@@ -94,9 +92,9 @@ class WavParser:
                     raise TypeError("Not a valid WAV file format.")
                 return head
             except FileNotFoundError:
-                raise FileNotFoundError(f"Could not find the audio file at: {self.file_path}")
+                raise FileNotFoundError(f"Could not find the audio file at: {self.file_path}.")
             except struct.error as e:
-                raise ValueError(f"The file header is corrupted or too short: {e}")
+                raise ValueError(f"The file header is corrupted or too short: {e}.")
     
     def _load_data(self):
         with open(self.file_path, "rb") as file:
@@ -104,50 +102,41 @@ class WavParser:
             while True:
                 content = file.read(8)
                 if len(content) < 8:
-                    raise ValueError("WAV file does not contain a data chunk")
-                wav_data = WavData.from_bytes(content)
-                if wav_data.subchunk2_id == "data":
-                    return wav_data, file.tell()
-                file.seek(wav_data.subchunk2_size + (wav_data.subchunk2_size % 2), 1)
+                    raise ValueError("WAV file does not contain a data chunk.")
+                chunk = WavData.from_bytes(content)
+                if chunk.subchunk2_id == "data":
+                    return chunk, file.tell()
+                file.seek(chunk.subchunk2_size + (chunk.subchunk2_size % 2), 1)
 
 
     def _load_samples(self, offset):
-        is_signed = self.head.bits_per_sample != 8
-        fmt_map = {
-            (1, False): "<B", (1, True): "<b",
-            (2, False): "<H", (2, True): "<h",
-            (3, False): "<3B",(3, True):"<3b",
-            (4, False): "<I", (4, True): "<i"
-        }
-        fmt = fmt_map.get((self.bytes_per_sample, is_signed))
-        if not fmt:
-            print(f"Unsupported format: {self.bytes_per_sample} bytes per sample.")
-            return []
         try:
             with open(self.file_path, "rb") as file:
                 file.seek(offset)
-                raw_data = file.read(self.data.subchunk2_size)
-            samples = []
-            num_channels = self.num_channels
-            if (rem := len(raw_data) % self.bytes_per_sample) != 0:
-                padding = b"\x00"*(self.bytes_per_sample - rem)
-                raw_data += padding
-            unpacked_iter = struct.iter_unpack(fmt, raw_data)
-            if num_channels == 1:
-                samples = [val[0] for val in unpacked_iter]
-            else:
-                if self.bytes_per_sample == 3:
-                    unpacked_iter = [[value[0] << 8] for value in unpacked_iter]
-                current_sum = 0
-                channel_count = 0
-                for val in unpacked_iter:
-                    current_sum += val[0]
-                    channel_count += 1
-                    if channel_count == num_channels:
-                        samples.append(current_sum / num_channels)
-                        current_sum = 0
-                        channel_count = 0
-            return samples
+                raw_data = file.read()
         except FileNotFoundError:
-            print("File Does Not Exist.")
-            return []
+            raise FileNotFoundError(f"Could not find the audio file at: {self.file_path}.")
+        bps = self.bytes_per_sample
+        if bps not in (1, 2, 3, 4):
+            raise ValueError(f"Unsupported bytes per sample: {bps}")
+        is_signed = bps > 1
+        samples = [
+            int.from_bytes(raw_data[i:i+bps], byteorder="little", signed=is_signed)
+            for i in range(0, len(raw_data) - bps + 1, bps)
+        ]
+
+        if self.num_channels == 1:
+            return samples
+        elif self.num_channels >= 2:
+            nc = self.num_channels
+            return [
+                sum(samples[i:i+nc]) / nc 
+                for i in range(0, len(samples) - nc + 1, nc)
+            ]
+        else:
+            raise ValueError("File is not parsed correctly: invalid number of channels.")
+
+                
+
+
+
