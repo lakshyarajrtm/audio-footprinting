@@ -42,7 +42,7 @@ class WavData:
     @classmethod
     def from_bytes(cls, content: bytes):
         if len(content) != 8:
-            raise ValueError("A WAV chunk header must contain exactly 8 bytes.")
+            raise ValueError("A wave chunk header must contain exactly 8 bytes.")
 
         chunk_id, chunk_size = struct.unpack("<4sI", content)
 
@@ -89,7 +89,7 @@ class WavParser:
                     content = file.read(36)
                 head = WavHead.from_bytes(content)
                 if head.format != "WAVE":
-                    raise TypeError("Not a valid WAV file format.")
+                    raise TypeError("Not a valid wave file format.")
                 return head
             except FileNotFoundError:
                 raise FileNotFoundError(f"Could not find the audio file at: {self.file_path}.")
@@ -102,7 +102,7 @@ class WavParser:
             while True:
                 content = file.read(8)
                 if len(content) < 8:
-                    raise ValueError("WAV file does not contain a data chunk.")
+                    raise ValueError("Wave file does not contain a data chunk.")
                 chunk = WavData.from_bytes(content)
                 if chunk.subchunk2_id == "data":
                     return chunk, file.tell()
@@ -124,7 +124,6 @@ class WavParser:
             int.from_bytes(raw_data[i:i+bps], byteorder="little", signed=is_signed)
             for i in range(0, len(raw_data) - bps + 1, bps)
         ]
-
         if self.num_channels == 1:
             return samples
         elif self.num_channels >= 2:

@@ -1,4 +1,3 @@
-from numpy.fft import fft 
 
 class Footprint:
 
